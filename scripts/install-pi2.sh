@@ -28,6 +28,10 @@ if [[ ! -f "$root/web/dist/index.html" ]]; then
 fi
 
 export DEBIAN_FRONTEND=noninteractive
+# Raspberry Pi OS is Raspbian. Ookla has no raspbian trixie repo, and the
+# packagecloud script adds one that makes every later apt update fail.
+rm -f /etc/apt/sources.list.d/ookla_speedtest-cli.list \
+  /etc/apt/sources.list.d/ookla_speedtest-cli.list.save
 apt-get update
 apt-get install -y --no-install-recommends \
   python3-venv python3-pip \
@@ -42,9 +46,11 @@ if [[ "$gpiod_major" -lt 2 ]]; then
 fi
 
 if ! command -v speedtest >/dev/null 2>&1; then
-  curl -fsSL https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | bash
-  apt-get update
-  apt-get install -y --no-install-recommends speedtest
+  deb="$(mktemp --suffix=.deb)"
+  curl -fsSL -o "$deb" \
+    "https://packagecloud.io/ookla/speedtest-cli/debian/pool/trixie/main/s/speedtest/speedtest_1.2.0.84-1.ea6b6773cf_armhf.deb"
+  apt-get install -y "$deb"
+  rm -f "$deb"
 fi
 
 install -d /opt/netwatch /var/lib/netwatch /etc/netwatch
