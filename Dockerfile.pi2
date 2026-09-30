@@ -1,0 +1,30 @@
+# 32-bit Raspberry Pi 2 (linux/arm/v7).
+# python:3.14 and node:latest publish no 32-bit ARM image. Debian Trixie has
+# libgpiod 2, which the Python gpiod package needs, and Ookla publishes an
+# armhf speedtest package for it. Build web/dist first with
+# scripts/prepare-pi2.sh. This image does not run Node.
+FROM python:3.12-slim-trixie
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    STATUS_DIST=/app/web/dist \
+    STATUS_PORT=16081
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ca-certificates curl gnupg iproute2 iputils-ping iw \
+        gcc libc6-dev libffi-dev pkg-config libgpiod-dev libgpiod3 \
+    && curl -fsSL https://packagecloud.io/install/repositories/ookla/speedtest-cli/script.deb.sh | bash \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends speedtest
+
+WORKDIR /app
+COPY pyproject.toml README.md ./
+COPY src ./src
+COPY web/dist /app/web/dist
+RUN pip install --no-cache-dir . \
+    && pip install --no-cache-dir gpiod \
+    && apt-get purge -y gcc libc6-dev libffi-dev pkg-config libgpiod-dev gnupg \
+    && apt-get autoremove -y \
+    && rm -rf /var/lib/apt/lists/*
+
+CMD ["netwatch-monitor"]

@@ -1,0 +1,91 @@
+# 32-bit Pi 2. Live page and admin only. Grafana stays on the Pi 5.
+#   docker compose -f compose.pi2.yaml up -d --build
+services:
+  monitor:
+    build: &build
+      context: .
+      dockerfile: Dockerfile.pi2
+    command: ["netwatch-monitor"]
+    network_mode: host
+    env_file:
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env
+    environment:
+      NETWATCH_ENV: /etc/netwatch/netwatch.env
+      SECRETS_DIR: /etc/netwatch/secrets
+      DATA_DIR: /data
+      SQLITE_JOURNAL: ${SQLITE_JOURNAL:-wal}
+    volumes: &netwatch_mounts
+      - netwatch-data:/data
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env:/etc/netwatch/netwatch.env:ro
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/secrets:/etc/netwatch/secrets:ro
+    restart: unless-stopped
+
+  speedtest:
+    build: *build
+    command: ["netwatch-speedtest"]
+    network_mode: host
+    env_file:
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env
+    environment:
+      NETWATCH_ENV: /etc/netwatch/netwatch.env
+      SECRETS_DIR: /etc/netwatch/secrets
+      DATA_DIR: /data
+      SQLITE_JOURNAL: ${SQLITE_JOURNAL:-wal}
+    volumes: *netwatch_mounts
+    restart: unless-stopped
+
+  sync:
+    build: *build
+    command: ["netwatch-sync"]
+    network_mode: host
+    env_file:
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env
+    environment:
+      NETWATCH_ENV: /etc/netwatch/netwatch.env
+      SECRETS_DIR: /etc/netwatch/secrets
+      DATA_DIR: /data
+      SQLITE_JOURNAL: ${SQLITE_JOURNAL:-wal}
+      SUPABASE_SQL_DIR: /opt/netwatch/supabase
+    volumes:
+      - netwatch-data:/data
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env:/etc/netwatch/netwatch.env:ro
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/secrets:/etc/netwatch/secrets:ro
+      - ./supabase:/opt/netwatch/supabase:ro
+    restart: unless-stopped
+
+  restart:
+    build: *build
+    command: ["netwatch-restart"]
+    network_mode: host
+    devices:
+      - /dev/gpiochip0:/dev/gpiochip0
+    env_file:
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env
+    environment:
+      NETWATCH_ENV: /etc/netwatch/netwatch.env
+      SECRETS_DIR: /etc/netwatch/secrets
+      DATA_DIR: /data
+      SQLITE_JOURNAL: ${SQLITE_JOURNAL:-wal}
+    volumes: *netwatch_mounts
+    restart: unless-stopped
+
+  status:
+    build: *build
+    command: ["netwatch-status"]
+    env_file:
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env
+    environment:
+      NETWATCH_ENV: /etc/netwatch/netwatch.env
+      SECRETS_DIR: /etc/netwatch/secrets
+      DATA_DIR: /data
+      SQLITE_JOURNAL: ${SQLITE_JOURNAL:-wal}
+      STATUS_PORT: "16081"
+      STATUS_DIST: /app/web/dist
+      GRAFANA_HEALTH_URL: ""
+    ports:
+      - "16081:16081"
+    volumes: *netwatch_mounts
+    restart: unless-stopped
+
+volumes:
+  netwatch-data:

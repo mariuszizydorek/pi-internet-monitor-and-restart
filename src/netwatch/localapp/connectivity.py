@@ -95,13 +95,15 @@ def connectivity_report(
     grafana_health_url: str,
 ) -> dict[str, Any]:
     key = settings.secret("supabase_key") or ""
-    return {
-        "checks": [
-            check_database(database, settings.site_id),
-            check_supabase(settings.supabase_url, key, http),
-            check_url(http=http, name="grafana", url=grafana_health_url, ok_detail="Grafana is up."),
-        ]
-    }
+    checks = [
+        check_database(database, settings.site_id),
+        check_supabase(settings.supabase_url, key, http),
+    ]
+    if grafana_health_url:
+        checks.append(
+            check_url(http=http, name="grafana", url=grafana_health_url, ok_detail="Grafana is up.")
+        )
+    return {"checks": checks}
 
 
 def _supabase_detail(response: httpx.Response, api_key: str) -> str:

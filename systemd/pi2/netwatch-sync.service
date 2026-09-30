@@ -1,0 +1,14 @@
+[Unit]
+Description=Netwatch Supabase sync
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/netwatch/service.env
+ExecStart=/opt/netwatch/venv/bin/netwatch-sync
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,15 @@
+[Unit]
+Description=Netwatch live page and admin page
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/netwatch/service.env
+Environment=GRAFANA_HEALTH_URL=
+ExecStart=/opt/netwatch/venv/bin/netwatch-status
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
