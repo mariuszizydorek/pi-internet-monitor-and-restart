@@ -47,7 +47,42 @@ CREATE TABLE IF NOT EXISTS router_checks (
     mem_usage REAL,
     model TEXT,
     firmware TEXT,
+    connect_type TEXT,
+    wan_ip TEXT,
+    wan_gateway TEXT,
+    dns_primary TEXT,
+    lan_ip TEXT,
     detail_json TEXT NOT NULL,
+    synced_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS deco_nodes (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    site_id TEXT NOT NULL,
+    recorded_at TEXT NOT NULL,
+    mac TEXT,
+    name TEXT,
+    role TEXT,
+    model TEXT,
+    firmware TEXT,
+    ip TEXT,
+    inet_status TEXT,
+    group_status TEXT,
+    synced_at TEXT
+);
+
+CREATE TABLE IF NOT EXISTS deco_clients (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    site_id TEXT NOT NULL,
+    recorded_at TEXT NOT NULL,
+    mac TEXT,
+    name TEXT,
+    ip TEXT,
+    online INTEGER NOT NULL,
+    connection TEXT,
+    up_kbps INTEGER,
+    down_kbps INTEGER,
+    client_type TEXT,
     synced_at TEXT
 );
 
@@ -86,13 +121,27 @@ CREATE INDEX IF NOT EXISTS idx_speed_site_time
     ON speed_samples (site_id, recorded_at);
 CREATE INDEX IF NOT EXISTS idx_restart_site_time
     ON restart_events (site_id, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_deco_nodes_site_time
+    ON deco_nodes (site_id, recorded_at);
+CREATE INDEX IF NOT EXISTS idx_deco_clients_site_time
+    ON deco_clients (site_id, recorded_at);
 """
+
+_ROUTER_COLUMNS = (
+    ("connect_type", "TEXT"),
+    ("wan_ip", "TEXT"),
+    ("wan_gateway", "TEXT"),
+    ("dns_primary", "TEXT"),
+    ("lan_ip", "TEXT"),
+)
 
 SYNC_TABLES = (
     "interface_samples",
     "router_checks",
     "speed_samples",
     "restart_events",
+    "deco_nodes",
+    "deco_clients",
 )
 
 
@@ -132,6 +181,11 @@ class Database:
         with self.connect() as conn:
             conn.execute(f"PRAGMA journal_mode={journal_mode()}")
             conn.executescript(SCHEMA)
+            for name, column_type in _ROUTER_COLUMNS:
+                try:
+                    conn.execute(f"ALTER TABLE router_checks ADD COLUMN {name} {column_type}")
+                except sqlite3.OperationalError:
+                    pass
             conn.execute(
                 "INSERT OR IGNORE INTO restart_state (id, last_pulse_at, pulse_in_progress) "
                 "VALUES (1, NULL, 0)"
@@ -148,6 +202,20 @@ class Database:
 
     def insert_restart_event(self, row: dict[str, Any]) -> int:
         return self._insert("restart_events", row)
+
+    def insert_deco_inventory(
+        self, nodes: list[dict[str, Any]], clients: list[dict[str, Any]]
+    ) -> None:
+        with self.connect() as conn:
+            for row in (*nodes, *clients):
+                table = "deco_nodes" if "role" in row else "deco_clients"
+                columns = list(row)
+                placeholders = ", ".join("?" for _ in columns)
+                names = ", ".join(columns)
+                conn.execute(
+                    f"INSERT INTO {table} ({names}) VALUES ({placeholders})",
+                    [row[column] for column in columns],
+                )
 
     def _insert(self, table: str, row: dict[str, Any]) -> int:
         columns = list(row)
@@ -267,7 +335,7 @@ class Database:
         speed_cut = iso(now - timedelta(seconds=speed_retention_seconds))
         restart_cut = iso(now - timedelta(seconds=restart_retention_seconds))
         with self.connect() as conn:
-            for table in ("interface_samples", "router_checks"):
+            for table in ("interface_samples", "router_checks", "deco_nodes", "deco_clients"):
                 conn.execute(
                     f"DELETE FROM {table} WHERE synced_at IS NOT NULL AND recorded_at < ?",
                     (synced_cut,),

@@ -186,6 +186,7 @@ def run_cycle(
                 hold_login(settings.data_dir, moment + timedelta(seconds=LOCK_SECONDS))
             elif snapshot_now is not None and snapshot_now.deco_api_ok == 1:
                 clear_login_hold(settings.data_dir)
+                _store_inventory(db, settings.site_id, iso(moment), snapshot_now)
         else:
             if not state.get("deco_missing_logged"):
                 log.info("Deco password file is absent; storing the gateway ping only")
@@ -217,6 +218,11 @@ def run_cycle(
                 "mem_usage": None if snapshot is None else snapshot.mem_usage,
                 "model": None if snapshot is None else snapshot.model,
                 "firmware": None if snapshot is None else snapshot.firmware,
+                "connect_type": None if snapshot is None else snapshot.connect_type,
+                "wan_ip": None if snapshot is None else snapshot.wan_ip,
+                "wan_gateway": None if snapshot is None else snapshot.wan_gateway,
+                "dns_primary": None if snapshot is None else snapshot.dns_primary,
+                "lan_ip": None if snapshot is None else snapshot.lan_ip,
                 "detail_json": detail,
             }
         )
@@ -241,6 +247,41 @@ def main(argv: list[str] | None = None) -> None:
         if args.once:
             return
         time.sleep(settings.poll_seconds)
+
+
+def _store_inventory(db: Database, site_id: str, recorded_at: str, snapshot: DecoSnapshot) -> None:
+    nodes = [
+        {
+            "site_id": site_id,
+            "recorded_at": recorded_at,
+            "mac": node.mac,
+            "name": node.name,
+            "role": node.role,
+            "model": node.model,
+            "firmware": node.firmware,
+            "ip": node.ip,
+            "inet_status": node.inet_status,
+            "group_status": node.group_status,
+        }
+        for node in snapshot.nodes
+    ]
+    clients = [
+        {
+            "site_id": site_id,
+            "recorded_at": recorded_at,
+            "mac": client.mac,
+            "name": client.name,
+            "ip": client.ip,
+            "online": client.online,
+            "connection": client.connection,
+            "up_kbps": client.up_kbps,
+            "down_kbps": client.down_kbps,
+            "client_type": client.client_type,
+        }
+        for client in snapshot.clients
+    ]
+    if nodes or clients:
+        db.insert_deco_inventory(nodes, clients)
 
 
 def _devices(settings: Settings) -> list[tuple[str, str]]:

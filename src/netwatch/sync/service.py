@@ -25,13 +25,15 @@ REMOTE_RETENTION = {
     "router_checks": "remote_sample_retention_seconds",
     "speed_samples": "remote_speed_retention_seconds",
     "restart_events": "remote_restart_retention_seconds",
+    "deco_nodes": "remote_sample_retention_seconds",
+    "deco_clients": "remote_sample_retention_seconds",
 }
 
 
 def run_cycle(settings: Settings, db: Database, rest: SupabaseRest, *, now: datetime | None = None) -> None:
     moment = now or utcnow()
     for table in SYNC_TABLES:
-        rows = db.unsynced(table)
+        rows = db.unsynced(table, limit=500)
         if not rows:
             continue
         rest.insert(table, [row_for_remote(row) for row in rows])

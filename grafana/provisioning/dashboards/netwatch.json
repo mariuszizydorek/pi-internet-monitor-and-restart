@@ -148,6 +148,116 @@
       ],
       "title": "Restart events",
       "type": "table"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 24 },
+      "id": 6,
+      "targets": [
+        {
+          "columns": [
+            { "selector": "recorded_at", "text": "time", "type": "timestamp" },
+            { "selector": "site_id", "text": "site", "type": "string" },
+            { "selector": "wan_status", "text": "internet", "type": "string" },
+            { "selector": "connect_type", "text": "type", "type": "string" },
+            { "selector": "wan_ip", "text": "WAN IP", "type": "string" },
+            { "selector": "wan_gateway", "text": "gateway", "type": "string" },
+            { "selector": "dns_primary", "text": "DNS", "type": "string" },
+            { "selector": "lan_ip", "text": "LAN IP", "type": "string" },
+            { "selector": "client_count", "text": "clients", "type": "number" },
+            { "selector": "cpu_usage", "text": "cpu", "type": "number" },
+            { "selector": "mem_usage", "text": "memory", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "json",
+          "url": "__SUPABASE_URL__/rest/v1/router_checks",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              { "key": "select", "value": "recorded_at,site_id,wan_status,connect_type,wan_ip,wan_gateway,dns_primary,lan_ip,client_count,cpu_usage,mem_usage" },
+              { "key": "deco_api_ok", "value": "eq.1" },
+              { "key": "order", "value": "recorded_at.desc" },
+              { "key": "limit", "value": "20" }
+            ]
+          }
+        }
+      ],
+      "title": "Deco internet",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 32 },
+      "id": 7,
+      "targets": [
+        {
+          "columns": [
+            { "selector": "site_id", "text": "site", "type": "string" },
+            { "selector": "name", "text": "node", "type": "string" },
+            { "selector": "role", "text": "role", "type": "string" },
+            { "selector": "model", "text": "model", "type": "string" },
+            { "selector": "ip", "text": "IP", "type": "string" },
+            { "selector": "inet_status", "text": "internet", "type": "string" },
+            { "selector": "group_status", "text": "mesh", "type": "string" },
+            { "selector": "firmware", "text": "firmware", "type": "string" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "json",
+          "url": "__SUPABASE_URL__/rest/v1/deco_nodes_latest",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              { "key": "select", "value": "site_id,name,role,model,ip,inet_status,group_status,firmware" },
+              { "key": "order", "value": "role.asc" }
+            ]
+          }
+        }
+      ],
+      "title": "Deco nodes",
+      "type": "table"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 40 },
+      "id": 8,
+      "targets": [
+        {
+          "columns": [
+            { "selector": "site_id", "text": "site", "type": "string" },
+            { "selector": "name", "text": "client", "type": "string" },
+            { "selector": "ip", "text": "IP", "type": "string" },
+            { "selector": "connection", "text": "connection", "type": "string" },
+            { "selector": "up_kbps", "text": "up KB/s", "type": "number" },
+            { "selector": "down_kbps", "text": "down KB/s", "type": "number" },
+            { "selector": "client_type", "text": "type", "type": "string" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "json",
+          "url": "__SUPABASE_URL__/rest/v1/deco_clients_latest",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              { "key": "select", "value": "site_id,name,ip,connection,up_kbps,down_kbps,client_type" },
+              { "key": "online", "value": "eq.1" },
+              { "key": "order", "value": "name.asc" }
+            ]
+          }
+        }
+      ],
+      "title": "Deco clients",
+      "type": "table"
     }
   ],
   "refresh": "1m",
@@ -157,5 +267,5 @@
   "timezone": "browser",
   "title": "Sites",
   "uid": "netwatch-sites",
-  "version": 1
+  "version": 2
 }
