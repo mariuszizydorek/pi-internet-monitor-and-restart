@@ -9,6 +9,5 @@ __pycache__/
 .env
 secrets/
 web/node_modules/
-web/dist/
 .pnpm-store/
 *.egg-info/

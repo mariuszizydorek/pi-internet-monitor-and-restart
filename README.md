@@ -35,15 +35,11 @@ GPIO stays off until `GPIO_ENABLED=true` and `GPIO_LINE` are set. The relay is n
 
 The Pi 2 does not use Docker. It runs the same five programs under systemd: monitor, speed test, sync, restart, and the status service. The live page and admin page are both on port 16081. Grafana stays on the Pi 5.
 
-Use 32-bit Raspberry Pi OS Trixie. That release has Python 3.13 and libgpiod 2, which this install needs. Build the status page on the laptop or the Pi 5, then copy this repo to the Pi 2, including `web/dist`:
+Use 32-bit Raspberry Pi OS Trixie. That release has Python 3.13 and libgpiod 2, which this install needs. GitHub Actions builds the status page and commits `web/dist` to `main`. Wait for that commit, then on the Pi 2:
 
 ```bash
-./scripts/prepare-pi2.sh
-```
-
-On the Pi 2:
-
-```bash
+git clone https://github.com/mariuszizydorek/pi-internet-monitor-and-restart.git
+cd pi-internet-monitor-and-restart
 sudo python3 scripts/setup.py
 sudo ./scripts/install-pi2.sh
 ```

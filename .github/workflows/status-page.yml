@@ -1,0 +1,45 @@
+name: Publish status page
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "web/dist/**"
+
+permissions:
+  contents: write
+
+jobs:
+  dist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.22.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Build the status page
+        working-directory: web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          test -f dist/index.html
+
+      - name: Commit web/dist
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/dist
+          if git diff --cached --quiet; then
+            echo "web/dist is unchanged"
+            exit 0
+          fi
+          git commit -m "Publish the status page build."
+          git push
