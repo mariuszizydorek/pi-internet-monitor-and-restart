@@ -1,5 +1,7 @@
 # Internet monitor and router restart
 
+This is the original design. The running system is described in [docs/architecture.md](../../architecture.md). Speed tests are Ookla only, the Pi 2 uses systemd instead of Docker, and Deco nodes and clients are stored.
+
 One repository, separate modules. Two Raspberry Pis (one per site) run the same stack. Each row carries `SITE_ID`. One Pi also runs Grafana against the shared Supabase database.
 
 ## Modules
