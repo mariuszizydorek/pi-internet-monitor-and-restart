@@ -1,0 +1,17 @@
+apiVersion: 1
+
+datasources:
+  - name: Supabase
+    uid: supabase
+    type: yesoreyeram-infinity-datasource
+    access: proxy
+    isDefault: true
+    jsonData:
+      auth_method: none
+      allowedHosts:
+        - ${SUPABASE_URL}
+      httpHeaderName1: apikey
+      httpHeaderName2: Authorization
+    secureJsonData:
+      httpHeaderValue1: ${SUPABASE_KEY}
+      httpHeaderValue2: Bearer ${SUPABASE_KEY}

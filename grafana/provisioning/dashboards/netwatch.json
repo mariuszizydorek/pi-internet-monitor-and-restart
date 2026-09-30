@@ -1,0 +1,199 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+      "fieldConfig": { "defaults": { "min": 0, "max": 1 } },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "id": 1,
+      "targets": [
+        {
+          "columns": [
+            { "selector": "recorded_at", "text": "time", "type": "timestamp" },
+            { "selector": "site_id", "text": "site_id", "type": "string" },
+            { "selector": "iface", "text": "iface", "type": "string" },
+            { "selector": "internet_ok", "text": "internet_ok", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "json",
+          "url": "__SUPABASE_URL__/rest/v1/interface_samples",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              { "key": "select", "value": "recorded_at,site_id,iface,internet_ok" },
+              { "key": "order", "value": "recorded_at.desc" },
+              { "key": "limit", "value": "1000" },
+              { "key": "recorded_at", "value": "gte.${__from:date:iso}" },
+              { "key": "recorded_at", "value": "lte.${__to:date:iso}" }
+            ]
+          }
+        }
+      ],
+      "title": "Internet up by site and interface",
+      "transformations": [
+        { "id": "partitionByValues", "options": { "fields": ["site_id", "iface"] } }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+      "fieldConfig": { "defaults": { "unit": "Mbits" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "id": 2,
+      "targets": [
+        {
+          "columns": [
+            { "selector": "recorded_at", "text": "time", "type": "timestamp" },
+            { "selector": "site_id", "text": "site_id", "type": "string" },
+            { "selector": "download_mbps", "text": "download", "type": "number" },
+            { "selector": "upload_mbps", "text": "upload", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "json",
+          "url": "__SUPABASE_URL__/rest/v1/speed_samples",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              { "key": "select", "value": "recorded_at,site_id,download_mbps,upload_mbps" },
+              { "key": "source", "value": "eq.ookla" },
+              { "key": "order", "value": "recorded_at.desc" },
+              { "key": "limit", "value": "500" },
+              { "key": "recorded_at", "value": "gte.${__from:date:iso}" },
+              { "key": "recorded_at", "value": "lte.${__to:date:iso}" }
+            ]
+          }
+        }
+      ],
+      "title": "Ookla Mbps",
+      "transformations": [
+        { "id": "partitionByValues", "options": { "fields": ["site_id"] } }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+      "fieldConfig": { "defaults": { "unit": "Mbits" } },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "id": 3,
+      "targets": [
+        {
+          "columns": [
+            { "selector": "recorded_at", "text": "time", "type": "timestamp" },
+            { "selector": "site_id", "text": "site_id", "type": "string" },
+            { "selector": "download_mbps", "text": "download", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "json",
+          "url": "__SUPABASE_URL__/rest/v1/speed_samples",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              { "key": "select", "value": "recorded_at,site_id,download_mbps" },
+              { "key": "source", "value": "eq.fast" },
+              { "key": "order", "value": "recorded_at.desc" },
+              { "key": "limit", "value": "500" },
+              { "key": "recorded_at", "value": "gte.${__from:date:iso}" },
+              { "key": "recorded_at", "value": "lte.${__to:date:iso}" }
+            ]
+          }
+        }
+      ],
+      "title": "fast.com Mbps",
+      "transformations": [
+        { "id": "partitionByValues", "options": { "fields": ["site_id"] } }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+      "fieldConfig": { "defaults": { "unit": "ms" } },
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "id": 4,
+      "targets": [
+        {
+          "columns": [
+            { "selector": "recorded_at", "text": "time", "type": "timestamp" },
+            { "selector": "site_id", "text": "site_id", "type": "string" },
+            { "selector": "rtt_ms", "text": "ping", "type": "number" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "json",
+          "url": "__SUPABASE_URL__/rest/v1/router_checks",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              { "key": "select", "value": "recorded_at,site_id,rtt_ms" },
+              { "key": "order", "value": "recorded_at.desc" },
+              { "key": "limit", "value": "1000" },
+              { "key": "recorded_at", "value": "gte.${__from:date:iso}" },
+              { "key": "recorded_at", "value": "lte.${__to:date:iso}" }
+            ]
+          }
+        }
+      ],
+      "title": "Deco ping",
+      "transformations": [
+        { "id": "partitionByValues", "options": { "fields": ["site_id"] } }
+      ],
+      "type": "timeseries"
+    },
+    {
+      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "id": 5,
+      "targets": [
+        {
+          "columns": [
+            { "selector": "recorded_at", "text": "time", "type": "timestamp" },
+            { "selector": "site_id", "text": "site_id", "type": "string" },
+            { "selector": "action", "text": "action", "type": "string" },
+            { "selector": "detail", "text": "detail", "type": "string" }
+          ],
+          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
+          "format": "table",
+          "parser": "backend",
+          "refId": "A",
+          "source": "url",
+          "type": "json",
+          "url": "__SUPABASE_URL__/rest/v1/restart_events",
+          "url_options": {
+            "method": "GET",
+            "params": [
+              { "key": "select", "value": "recorded_at,site_id,action,detail" },
+              { "key": "order", "value": "recorded_at.desc" },
+              { "key": "limit", "value": "50" }
+            ]
+          }
+        }
+      ],
+      "title": "Restart events",
+      "type": "table"
+    }
+  ],
+  "refresh": "1m",
+  "schemaVersion": 39,
+  "tags": ["netwatch"],
+  "time": { "from": "now-24h", "to": "now" },
+  "timezone": "browser",
+  "title": "Sites",
+  "uid": "netwatch-sites",
+  "version": 1
+}

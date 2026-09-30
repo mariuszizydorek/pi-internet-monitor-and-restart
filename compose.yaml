@@ -1,0 +1,90 @@
+services:
+  monitor:
+    build: .
+    command: ["netwatch-monitor"]
+    network_mode: host
+    env_file:
+      - /etc/netwatch/netwatch.env
+    environment:
+      NETWATCH_ENV: /etc/netwatch/netwatch.env
+      SECRETS_DIR: /etc/netwatch/secrets
+      DATA_DIR: /data
+    volumes:
+      - netwatch-data:/data
+      - /etc/netwatch/netwatch.env:/etc/netwatch/netwatch.env:ro
+      - /etc/netwatch/secrets:/etc/netwatch/secrets:ro
+    restart: unless-stopped
+
+  speedtest:
+    build: .
+    command: ["netwatch-speedtest"]
+    network_mode: host
+    env_file:
+      - /etc/netwatch/netwatch.env
+    environment:
+      NETWATCH_ENV: /etc/netwatch/netwatch.env
+      SECRETS_DIR: /etc/netwatch/secrets
+      DATA_DIR: /data
+    volumes:
+      - netwatch-data:/data
+      - /etc/netwatch/netwatch.env:/etc/netwatch/netwatch.env:ro
+      - /etc/netwatch/secrets:/etc/netwatch/secrets:ro
+    restart: unless-stopped
+
+  sync:
+    build: .
+    command: ["netwatch-sync"]
+    network_mode: host
+    env_file:
+      - /etc/netwatch/netwatch.env
+    environment:
+      NETWATCH_ENV: /etc/netwatch/netwatch.env
+      SECRETS_DIR: /etc/netwatch/secrets
+      DATA_DIR: /data
+    volumes:
+      - netwatch-data:/data
+      - /etc/netwatch/netwatch.env:/etc/netwatch/netwatch.env:ro
+      - /etc/netwatch/secrets:/etc/netwatch/secrets:ro
+    restart: unless-stopped
+
+  restart:
+    build: .
+    command: ["netwatch-restart"]
+    network_mode: host
+    devices:
+      - /dev/gpiochip0:/dev/gpiochip0
+    env_file:
+      - /etc/netwatch/netwatch.env
+    environment:
+      NETWATCH_ENV: /etc/netwatch/netwatch.env
+      SECRETS_DIR: /etc/netwatch/secrets
+      DATA_DIR: /data
+    volumes:
+      - netwatch-data:/data
+      - /etc/netwatch/netwatch.env:/etc/netwatch/netwatch.env:ro
+      - /etc/netwatch/secrets:/etc/netwatch/secrets:ro
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss:11.3.0
+    profiles: ["grafana"]
+    user: "0:0"
+    entrypoint: ["/bin/sh", "/opt/netwatch/entrypoint.sh"]
+    environment:
+      GF_INSTALL_PLUGINS: yesoreyeram-infinity-datasource
+    ports:
+      - "16080:3000"
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - grafana-provisioning:/etc/grafana/provisioning
+      - ./grafana/entrypoint.sh:/opt/netwatch/entrypoint.sh:ro
+      - ./grafana/provisioning:/opt/netwatch/provisioning:ro
+      - /etc/netwatch/netwatch.env:/etc/netwatch/netwatch.env:ro
+      - /etc/netwatch/secrets/grafana_admin_password:/run/secrets/grafana_admin_password:ro
+      - /etc/netwatch/secrets/supabase_key:/run/secrets/supabase_key:ro
+    restart: unless-stopped
+
+volumes:
+  netwatch-data:
+  grafana-data:
+  grafana-provisioning:
