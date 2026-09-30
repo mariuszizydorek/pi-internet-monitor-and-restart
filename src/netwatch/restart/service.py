@@ -11,7 +11,7 @@ from netwatch.config import Settings, load_settings
 from netwatch.db import Database
 from netwatch.log import configure_logging
 from netwatch.restart.gpio import Pin, open_pin
-from netwatch.status import current_decision
+from netwatch.status import counted_ifaces, current_decision
 from netwatch.timeutil import iso, parse_iso, utcnow
 
 log = logging.getLogger(__name__)
@@ -58,13 +58,25 @@ def run_cycle(
     state["action"] = decision.action
 
 
+def simulate_restart(settings: Settings, db: Database, *, now: datetime | None = None) -> dict[str, str]:
+    """Record what the restart policy would do. The GPIO pin is not driven."""
+    moment = now or utcnow()
+    decision = current_decision(settings, db, moment)
+    if decision.action == "pulse":
+        detail = "policy would pulse the router; pin was not driven"
+    else:
+        detail = f"policy says {decision.action}; pin was not driven"
+    _event(db, settings, moment, "simulated", detail)
+    return {"action": "simulated", "policy": decision.action, "detail": detail}
+
+
 def site_recovered(settings: Settings, db: Database, now: datetime) -> bool:
     router = db.latest_router(settings.site_id)
     if router is None or not router["ping_ok"]:
         return False
     if now - parse_iso(router["recorded_at"]) > timedelta(seconds=settings.stale_seconds):
         return False
-    for iface in settings.interfaces:
+    for iface in counted_ifaces(settings, db):
         sample = db.latest_interface(settings.site_id, iface)
         if sample is None or not sample["internet_ok"] or sample["carrier"] != 1:
             return False

@@ -39,6 +39,29 @@ def parse_ipv4(ip_addr_text: str) -> str | None:
     return None if match is None else match.group(1)
 
 
+def parse_ifconfig(text: str) -> tuple[int | None, str | None, str | None]:
+    carrier: int | None = None
+    operstate: str | None = None
+    if re.search(r"^\s*status:\s*active\s*$", text, re.MULTILINE):
+        carrier, operstate = 1, "up"
+    elif re.search(r"^\s*status:\s*inactive\s*$", text, re.MULTILINE):
+        carrier, operstate = 0, "down"
+    address = parse_ipv4(text)
+    return carrier, operstate, address
+
+
+def parse_ipconfig_summary(text: str) -> tuple[str | None, int | None]:
+    ssid_match = re.search(r"^\s*SSID\s*:\s*(.+)$", text, re.MULTILINE)
+    signal_match = re.search(r"^\s*(?:agrCtlRSSI|RSSI)\s*:\s*(-?\d+)\s*$", text, re.MULTILINE)
+    ssid = ssid_match.group(1).strip() if ssid_match else None
+    if ssid == "<redacted>":
+        ssid = "connected"
+    elif ssid in {"", "None"}:
+        ssid = None
+    signal = int(signal_match.group(1)) if signal_match else None
+    return ssid, signal
+
+
 def parse_iw_link(text: str) -> tuple[str | None, int | None]:
     if "Not connected" in text:
         return None, None

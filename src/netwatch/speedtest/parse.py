@@ -1,4 +1,4 @@
-"""Parse Ookla and fast.com command output."""
+"""Parse Ookla Speedtest CLI output."""
 
 from __future__ import annotations
 
@@ -32,22 +32,6 @@ def parse_ookla(stdout: str) -> SpeedResult:
         upload,
         None if latency is None else float(latency),
         json.dumps(detail, separators=(",", ":")),
-    )
-
-
-def parse_fast(stdout: str) -> SpeedResult:
-    data = json.loads(stdout)
-    if isinstance(data, (int, float)):
-        return SpeedResult("fast", float(data), None, None, "{}")
-    download = data.get("downloadSpeed", data.get("download"))
-    upload = data.get("uploadSpeed", data.get("upload"))
-    latency = data.get("latency")
-    return SpeedResult(
-        "fast",
-        None if download is None else float(download),
-        None if upload is None else float(upload),
-        None if latency is None else float(latency),
-        "{}",
     )
 
 

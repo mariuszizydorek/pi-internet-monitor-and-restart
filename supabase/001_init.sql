@@ -1,6 +1,6 @@
 -- Shared tables for every Pi. Each row is tagged with site_id.
--- Run this once in the Supabase SQL editor before starting sync.
--- Sync and Grafana both use the service role key. Row level security blocks the anon key.
+-- Sync and Grafana both use the project secret key. This file is applied by
+-- ./scripts/setup-supabase.sh and again whenever sync starts.
 
 create table if not exists interface_samples (
     id bigint generated always as identity primary key,

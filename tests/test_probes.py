@@ -10,7 +10,7 @@ from netwatch.monitor.probes import (
     check_interface,
     fetch_matches,
 )
-from netwatch.speedtest.parse import parse_fast, parse_ookla
+from netwatch.speedtest.parse import parse_ookla
 
 
 def test_internet_requires_a_successful_fetch():
@@ -97,7 +97,4 @@ def test_speed_parsers():
     assert ookla.download_mbps == 100.0
     assert ookla.upload_mbps == 20.0
     assert ookla.latency_ms == 14.5
-    fast = parse_fast('{"downloadSpeed":80.5,"latency":11}')
-    assert fast.source == "fast"
-    assert fast.download_mbps == 80.5
-    assert fast.upload_mbps is None
+    assert ookla.source == "ookla"

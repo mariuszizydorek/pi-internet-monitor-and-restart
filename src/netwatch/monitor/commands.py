@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -24,10 +25,7 @@ def run_command(args: list[str], timeout: float) -> subprocess.CompletedProcess[
 def ping_host(iface: str, host: str, timeout: float) -> PingHit:
     wait = max(1, int(timeout))
     try:
-        completed = run_command(
-            ["ping", "-I", iface, "-c", "1", "-W", str(wait), host],
-            timeout + 1,
-        )
+        completed = run_command(_ping_command(iface, host, wait), timeout + 1)
     except (OSError, subprocess.TimeoutExpired):
         return PingHit(False, None)
     ok, rtt = parse_ping(completed.stdout)
@@ -37,7 +35,7 @@ def ping_host(iface: str, host: str, timeout: float) -> PingHit:
 def ping_gateway(host: str, timeout: float) -> PingHit:
     wait = max(1, int(timeout))
     try:
-        completed = run_command(["ping", "-c", "1", "-W", str(wait), host], timeout + 1)
+        completed = run_command(_ping_command(None, host, wait), timeout + 1)
     except (OSError, subprocess.TimeoutExpired):
         return PingHit(False, None)
     ok, rtt = parse_ping(completed.stdout)
@@ -85,6 +83,19 @@ def system_resolver(name: str, timeout: float) -> bool:
 
 def direct_resolver(name: str, server: str, timeout: float) -> bool:
     return query_a(name, server, timeout)
+
+
+def _ping_command(iface: str | None, host: str, wait_seconds: int) -> list[str]:
+    command = ["ping", "-c", "1"]
+    if sys.platform == "darwin":
+        if iface:
+            command.extend(["-b", iface])
+        command.extend(["-W", str(wait_seconds * 1000), host])
+    else:
+        if iface:
+            command.extend(["-I", iface])
+        command.extend(["-W", str(wait_seconds), host])
+    return command
 
 
 def default_targets() -> tuple[FetchTarget, ...]:

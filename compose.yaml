@@ -4,15 +4,16 @@ services:
     command: ["netwatch-monitor"]
     network_mode: host
     env_file:
-      - /etc/netwatch/netwatch.env
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env
     environment:
       NETWATCH_ENV: /etc/netwatch/netwatch.env
       SECRETS_DIR: /etc/netwatch/secrets
       DATA_DIR: /data
-    volumes:
+      SQLITE_JOURNAL: ${SQLITE_JOURNAL:-wal}
+    volumes: &netwatch_mounts
       - netwatch-data:/data
-      - /etc/netwatch/netwatch.env:/etc/netwatch/netwatch.env:ro
-      - /etc/netwatch/secrets:/etc/netwatch/secrets:ro
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env:/etc/netwatch/netwatch.env:ro
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/secrets:/etc/netwatch/secrets:ro
     restart: unless-stopped
 
   speedtest:
@@ -20,15 +21,13 @@ services:
     command: ["netwatch-speedtest"]
     network_mode: host
     env_file:
-      - /etc/netwatch/netwatch.env
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env
     environment:
       NETWATCH_ENV: /etc/netwatch/netwatch.env
       SECRETS_DIR: /etc/netwatch/secrets
       DATA_DIR: /data
-    volumes:
-      - netwatch-data:/data
-      - /etc/netwatch/netwatch.env:/etc/netwatch/netwatch.env:ro
-      - /etc/netwatch/secrets:/etc/netwatch/secrets:ro
+      SQLITE_JOURNAL: ${SQLITE_JOURNAL:-wal}
+    volumes: *netwatch_mounts
     restart: unless-stopped
 
   sync:
@@ -36,15 +35,18 @@ services:
     command: ["netwatch-sync"]
     network_mode: host
     env_file:
-      - /etc/netwatch/netwatch.env
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env
     environment:
       NETWATCH_ENV: /etc/netwatch/netwatch.env
       SECRETS_DIR: /etc/netwatch/secrets
       DATA_DIR: /data
+      SQLITE_JOURNAL: ${SQLITE_JOURNAL:-wal}
+      SUPABASE_SQL_DIR: /opt/netwatch/supabase
     volumes:
       - netwatch-data:/data
-      - /etc/netwatch/netwatch.env:/etc/netwatch/netwatch.env:ro
-      - /etc/netwatch/secrets:/etc/netwatch/secrets:ro
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env:/etc/netwatch/netwatch.env:ro
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/secrets:/etc/netwatch/secrets:ro
+      - ./supabase:/opt/netwatch/supabase:ro
     restart: unless-stopped
 
   restart:
@@ -54,23 +56,40 @@ services:
     devices:
       - /dev/gpiochip0:/dev/gpiochip0
     env_file:
-      - /etc/netwatch/netwatch.env
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env
     environment:
       NETWATCH_ENV: /etc/netwatch/netwatch.env
       SECRETS_DIR: /etc/netwatch/secrets
       DATA_DIR: /data
-    volumes:
-      - netwatch-data:/data
-      - /etc/netwatch/netwatch.env:/etc/netwatch/netwatch.env:ro
-      - /etc/netwatch/secrets:/etc/netwatch/secrets:ro
+      SQLITE_JOURNAL: ${SQLITE_JOURNAL:-wal}
+    volumes: *netwatch_mounts
+    restart: unless-stopped
+
+  status:
+    build: .
+    command: ["netwatch-status"]
+    env_file:
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env
+    environment:
+      NETWATCH_ENV: /etc/netwatch/netwatch.env
+      SECRETS_DIR: /etc/netwatch/secrets
+      DATA_DIR: /data
+      SQLITE_JOURNAL: ${SQLITE_JOURNAL:-wal}
+      STATUS_PORT: "16081"
+      STATUS_DIST: /app/web/dist
+      GRAFANA_HEALTH_URL: http://grafana:3000/api/health
+    ports:
+      - "16081:16081"
+    volumes: *netwatch_mounts
     restart: unless-stopped
 
   grafana:
-    image: grafana/grafana-oss:11.3.0
+    image: grafana/grafana:13.2.2
     profiles: ["grafana"]
     user: "0:0"
     entrypoint: ["/bin/sh", "/opt/netwatch/entrypoint.sh"]
     environment:
+      GF_PLUGINS_PREINSTALL: yesoreyeram-infinity-datasource
       GF_INSTALL_PLUGINS: yesoreyeram-infinity-datasource
     ports:
       - "16080:3000"
@@ -79,12 +98,14 @@ services:
       - grafana-provisioning:/etc/grafana/provisioning
       - ./grafana/entrypoint.sh:/opt/netwatch/entrypoint.sh:ro
       - ./grafana/provisioning:/opt/netwatch/provisioning:ro
-      - /etc/netwatch/netwatch.env:/etc/netwatch/netwatch.env:ro
-      - /etc/netwatch/secrets/grafana_admin_password:/run/secrets/grafana_admin_password:ro
-      - /etc/netwatch/secrets/supabase_key:/run/secrets/supabase_key:ro
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/netwatch.env:/etc/netwatch/netwatch.env:ro
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/secrets/grafana_admin_password:/run/secrets/grafana_admin_password:ro
+      - ${NETWATCH_CONFIG_DIR:-/etc/netwatch}/secrets/supabase_key:/run/secrets/supabase_key:ro
     restart: unless-stopped
 
 volumes:
+  # SQLite lives only on this volume. Do not bind-mount it from the Mac:
+  # Docker Desktop corrupts a WAL file that the host and a container both open.
   netwatch-data:
   grafana-data:
   grafana-provisioning:

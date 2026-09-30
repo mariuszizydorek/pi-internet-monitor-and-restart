@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import os
 import sqlite3
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -11,7 +13,6 @@ from typing import Any, Iterable
 from netwatch.timeutil import iso, parse_iso
 
 SCHEMA = """
-PRAGMA journal_mode=WAL;
 PRAGMA busy_timeout=5000;
 
 CREATE TABLE IF NOT EXISTS interface_samples (
@@ -101,18 +102,35 @@ class RestartState:
     pulse_in_progress: bool
 
 
+def journal_mode() -> str:
+    """WAL breaks when macOS and a Docker Desktop container share the file."""
+    mode = os.environ.get("SQLITE_JOURNAL", "wal").strip().lower()
+    if mode not in {"wal", "delete"}:
+        return "wal"
+    return mode
+
+
 class Database:
     def __init__(self, path: Path) -> None:
         self.path = path
 
-    def connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def connect(self):
         self.path.parent.mkdir(parents=True, exist_ok=True)
         conn = sqlite3.connect(self.path, timeout=5)
         conn.row_factory = sqlite3.Row
-        return conn
+        try:
+            yield conn
+            conn.commit()
+        except Exception:
+            conn.rollback()
+            raise
+        finally:
+            conn.close()
 
     def migrate(self) -> None:
         with self.connect() as conn:
+            conn.execute(f"PRAGMA journal_mode={journal_mode()}")
             conn.executescript(SCHEMA)
             conn.execute(
                 "INSERT OR IGNORE INTO restart_state (id, last_pulse_at, pulse_in_progress) "

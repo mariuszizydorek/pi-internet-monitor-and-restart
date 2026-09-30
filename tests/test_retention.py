@@ -48,7 +48,7 @@ def test_retention_keeps_recent_unsynced_rows_and_drops_old_ones(tmp_path):
         {
             "site_id": "site-a",
             "recorded_at": iso(now - timedelta(days=10)),
-            "source": "fast",
+            "source": "ookla",
             "download_mbps": 20,
             "upload_mbps": None,
             "latency_ms": None,
@@ -87,6 +87,6 @@ def test_retention_keeps_recent_unsynced_rows_and_drops_old_ones(tmp_path):
 
     assert len(iface_rows) == 1
     assert iface_rows[0]["synced_at"] is None
-    assert [row["source"] for row in speeds] == ["fast"]
+    assert [row["source"] for row in speeds] == ["ookla"]
     assert [row["action"] for row in events] == ["released"]
     assert db.restart_state().pulse_in_progress is False

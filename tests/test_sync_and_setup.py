@@ -59,10 +59,52 @@ def test_setup_writes_root_only_secrets(tmp_path):
     assert "service-role" not in env
     password = tmp_path / "secrets" / "deco_password"
     assert password.read_text(encoding="utf-8").strip() == "router-secret"
-    assert (password.stat().st_mode & 0o777) == 0o400
+    assert (password.stat().st_mode & 0o777) == 0o600
     assert (tmp_path / "secrets" / "supabase_key").read_text(encoding="utf-8").strip() == "service-role"
     assert (tmp_path / "secrets" / "grafana_admin_password").read_text(encoding="utf-8").strip() == "grafana-secret"
     assert not (tmp_path / "secrets" / "supabase_db_password").exists()
+
+
+def test_update_supabase_replaces_only_the_url_and_key(tmp_path):
+    env = tmp_path / "netwatch.env"
+    env.write_text("SITE_ID=localDev\nSUPABASE_URL=https://old.supabase.co\nINTERFACES=en0\n", encoding="utf-8")
+    (tmp_path / "secrets").mkdir()
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.headers["apikey"] == "sb_secret_example"
+        return httpx.Response(200, json=[])
+
+    url = run_setup_update(
+        tmp_path,
+        "https://example.supabase.co/rest/v1",
+        "sb_secret_example",
+        httpx.Client(transport=httpx.MockTransport(handler)),
+    )
+    text = env.read_text(encoding="utf-8")
+    assert url == "https://example.supabase.co"
+    assert "SUPABASE_URL=https://example.supabase.co\n" in text
+    assert "SITE_ID=localDev" in text
+    assert "INTERFACES=en0" in text
+    assert (tmp_path / "secrets" / "supabase_key").read_text(encoding="utf-8").strip() == "sb_secret_example"
+
+
+def test_update_supabase_refuses_the_publishable_key(tmp_path):
+    env = tmp_path / "netwatch.env"
+    env.write_text("SITE_ID=localDev\nSUPABASE_URL=https://old.supabase.co\n", encoding="utf-8")
+    try:
+        run_setup_update(tmp_path, "https://example.supabase.co", "sb_publishable_example", None)
+    except SystemExit as exc:
+        assert "publishable" in str(exc)
+    else:
+        raise AssertionError("expected SystemExit")
+    assert "old.supabase.co" in env.read_text(encoding="utf-8")
+    assert not (tmp_path / "secrets" / "supabase_key").exists()
+
+
+def run_setup_update(root, url, api_key, http):
+    from scripts.setup import update_supabase
+
+    return update_supabase(root, url, api_key, http)
 
 
 def test_remote_row_uses_local_id_and_parsed_json():
@@ -174,6 +216,51 @@ def test_disabled_gpio_records_one_would_restart(tmp_path):
     with db.connect() as conn:
         actions = [row["action"] for row in conn.execute("SELECT action FROM restart_events")]
     assert actions == ["would_restart"]
+
+
+def test_simulate_restart_does_not_pulse(tmp_path):
+    from netwatch.config import Settings
+    from netwatch.restart.service import simulate_restart
+
+    db = Database(tmp_path / "netwatch.sqlite")
+    db.migrate()
+    now = datetime(2026, 9, 30, 12, 0, tzinfo=timezone.utc)
+    for offset in range(0, 21):
+        moment = now - timedelta(minutes=20) + timedelta(minutes=offset)
+        db.insert_interface_sample(
+            {
+                "site_id": "site-a",
+                "recorded_at": iso(moment),
+                "iface": "eth0",
+                "carrier": 0,
+                "operstate": "down",
+                "wifi_ssid": None,
+                "wifi_signal_dbm": None,
+                "ipv4": None,
+                "dns_ok": 0,
+                "ping_ok": 0,
+                "fetch_ok": 0,
+                "internet_ok": 0,
+                "probes_json": "{}",
+            }
+        )
+    settings = Settings(
+        site_id="site-a",
+        deco_host="192.168.68.1",
+        deco_user="admin",
+        interfaces=("eth0",),
+        data_dir=tmp_path,
+        secrets_dir=tmp_path,
+        supabase_url="",
+        gpio_enabled=True,
+        gpio_chip="gpiochip0",
+        gpio_line=17,
+    )
+    result = simulate_restart(settings, db, now=now)
+    assert result["action"] == "simulated"
+    assert result["policy"] == "pulse"
+    assert "pin was not driven" in result["detail"]
+    assert db.restart_state().pulse_in_progress is False
     assert site_recovered(settings, db, now) is False
 
 

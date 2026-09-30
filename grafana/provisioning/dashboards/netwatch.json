@@ -44,7 +44,7 @@
     {
       "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
       "fieldConfig": { "defaults": { "unit": "Mbits" } },
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 8 },
       "id": 2,
       "targets": [
         {
@@ -75,44 +75,6 @@
         }
       ],
       "title": "Ookla Mbps",
-      "transformations": [
-        { "id": "partitionByValues", "options": { "fields": ["site_id"] } }
-      ],
-      "type": "timeseries"
-    },
-    {
-      "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
-      "fieldConfig": { "defaults": { "unit": "Mbits" } },
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
-      "id": 3,
-      "targets": [
-        {
-          "columns": [
-            { "selector": "recorded_at", "text": "time", "type": "timestamp" },
-            { "selector": "site_id", "text": "site_id", "type": "string" },
-            { "selector": "download_mbps", "text": "download", "type": "number" }
-          ],
-          "datasource": { "type": "yesoreyeram-infinity-datasource", "uid": "supabase" },
-          "format": "table",
-          "parser": "backend",
-          "refId": "A",
-          "source": "url",
-          "type": "json",
-          "url": "__SUPABASE_URL__/rest/v1/speed_samples",
-          "url_options": {
-            "method": "GET",
-            "params": [
-              { "key": "select", "value": "recorded_at,site_id,download_mbps" },
-              { "key": "source", "value": "eq.fast" },
-              { "key": "order", "value": "recorded_at.desc" },
-              { "key": "limit", "value": "500" },
-              { "key": "recorded_at", "value": "gte.${__from:date:iso}" },
-              { "key": "recorded_at", "value": "lte.${__to:date:iso}" }
-            ]
-          }
-        }
-      ],
-      "title": "fast.com Mbps",
       "transformations": [
         { "id": "partitionByValues", "options": { "fields": ["site_id"] } }
       ],

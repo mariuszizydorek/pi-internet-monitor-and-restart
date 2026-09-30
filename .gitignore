@@ -8,3 +8,7 @@ __pycache__/
 *.sqlite-shm
 .env
 secrets/
+web/node_modules/
+web/dist/
+.pnpm-store/
+*.egg-info/

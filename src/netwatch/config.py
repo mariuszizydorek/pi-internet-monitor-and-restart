@@ -39,11 +39,36 @@ def load_env_file(path: Path) -> None:
         os.environ.setdefault(key, value)
 
 
+def _deco_user() -> str:
+    raw = os.environ.get("DECO_USER")
+    if raw is None:
+        return "admin"
+    return raw.strip()
+
+
 def _int(name: str, default: int) -> int:
     raw = os.environ.get(name)
     if raw is None or raw == "":
         return default
     return int(raw)
+
+
+def _names(name: str) -> tuple[str, ...]:
+    return tuple(part.strip() for part in os.environ.get(name, "").split(",") if part.strip())
+
+
+def _link_mode(raw: str) -> str:
+    mode = raw.strip().lower() or "auto"
+    if mode not in {"auto", "ethernet", "wifi"}:
+        raise ConfigError("LINK_MODE must be auto, ethernet, or wifi")
+    return mode
+
+
+def _supabase_url(raw: str) -> str:
+    url = raw.strip().rstrip("/")
+    if url.endswith("/rest/v1"):
+        url = url[: -len("/rest/v1")]
+    return url
 
 
 def _bool(name: str, default: bool = False) -> bool:
@@ -65,10 +90,14 @@ class Settings:
     gpio_enabled: bool
     gpio_chip: str
     gpio_line: int
+    link_mode: str = "auto"
+    ethernet_ifaces: tuple[str, ...] = ()
+    wifi_ifaces: tuple[str, ...] = ()
     poll_seconds: int = 15
     sample_write_seconds: int = 60
     deco_interval_seconds: int = 300
     speedtest_interval_seconds: int = 6 * 3600
+    speedtest_retry_seconds: int = 6 * 3600
     outage_seconds: int = 15 * 60
     cooldown_seconds: int = 2 * 3600
     stale_seconds: int = 120
@@ -110,18 +139,22 @@ def load_settings() -> Settings:
     return Settings(
         site_id=site_id,
         deco_host=os.environ.get("DECO_HOST", "192.168.68.1").strip(),
-        deco_user=os.environ.get("DECO_USER", "admin").strip() or "admin",
+        deco_user=_deco_user(),
         interfaces=interfaces,
         data_dir=Path(os.environ.get("DATA_DIR", "/data")),
         secrets_dir=Path(os.environ.get("SECRETS_DIR", "/etc/netwatch/secrets")),
-        supabase_url=os.environ.get("SUPABASE_URL", "").strip().rstrip("/"),
+        supabase_url=_supabase_url(os.environ.get("SUPABASE_URL", "")),
         gpio_enabled=gpio_enabled,
         gpio_chip=os.environ.get("GPIO_CHIP", "gpiochip0").strip() or "gpiochip0",
         gpio_line=int(gpio_line_raw) if gpio_line_raw else 0,
+        link_mode=_link_mode(os.environ.get("LINK_MODE", "auto")),
+        ethernet_ifaces=_names("ETHERNET_IFACES"),
+        wifi_ifaces=_names("WIFI_IFACES"),
         poll_seconds=_int("MONITOR_POLL_SECONDS", 15),
         sample_write_seconds=_int("SAMPLE_WRITE_SECONDS", 60),
         deco_interval_seconds=_int("DECO_INTERVAL_SECONDS", 300),
         speedtest_interval_seconds=_int("SPEEDTEST_INTERVAL_SECONDS", 6 * 3600),
+        speedtest_retry_seconds=_int("SPEEDTEST_RETRY_SECONDS", 6 * 3600),
         outage_seconds=_int("OUTAGE_SECONDS", 15 * 60),
         cooldown_seconds=_int("COOLDOWN_SECONDS", 2 * 3600),
         stale_seconds=_int("STALE_SECONDS", 120),
