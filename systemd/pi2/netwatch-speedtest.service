@@ -6,6 +6,8 @@ Wants=network-online.target
 [Service]
 Type=simple
 EnvironmentFile=/etc/netwatch/service.env
+Environment=HOME=/var/lib/netwatch
+Environment=LANG=C.UTF-8
 ExecStart=/opt/netwatch/venv/bin/netwatch-speedtest
 Restart=always
 RestartSec=5

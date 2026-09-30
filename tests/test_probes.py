@@ -10,6 +10,7 @@ from netwatch.monitor.probes import (
     check_interface,
     fetch_matches,
 )
+from netwatch.speedtest.cli import ookla_env
 from netwatch.speedtest.parse import parse_ookla
 
 
@@ -98,3 +99,10 @@ def test_speed_parsers():
     assert ookla.upload_mbps == 20.0
     assert ookla.latency_ms == 14.5
     assert ookla.source == "ookla"
+
+
+def test_ookla_env_fills_home_and_locale(tmp_path):
+    env = ookla_env({"PATH": "/usr/bin", "DATA_DIR": str(tmp_path)})
+    assert env["HOME"] == str(tmp_path)
+    assert env["LANG"] == "C.UTF-8"
+    assert (tmp_path / ".config" / "ookla").is_dir()
